@@ -17,13 +17,13 @@ import redis
 from pinecone import Pinecone
 import json
 import re
-
+import time
 
 # Setup
 genai_client = genai.Client(api_key="AIzaSyDQPm0ZgpBHm9fRCGESZwpZ2TTeVTl1qxY")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+# redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
 pc = Pinecone(api_key="pcsk_7Hu95R_9i8U69pVcERBD9m4AZRFfPev86o273WetDZk3A7agLT3YqrygGpzZWUvbrPp6XQ")
 index = pc.Index("project-astitva-ltm")
@@ -32,23 +32,18 @@ print("[INFO] Models Loaded")
 # 🔹 STEP 1: GEMINI TAG EXTRACTOR
 def extract_metadata(text):
     print("[INFO] Extractor Called")
+        
+        
     prompt = f"""
-You are an AI that extracts structured semantic information. 
+    Extract and return a raw JavaScript object with:
+    - "context": short summary
+    - "sentiment": "..."
+    - "tags": min 5 keywords + 10 background knowledge terms and more of required 
 
-Given the input text below, return a Java script object with the following keys only: 
-- "context": a short summary of the input
-- "sentiment": one of ["positive", "neutral", "negative"]
-- "tags": a list of only relevant keywords (minimum 5) and background knowledge keywords (minimum 10)
+    Only return raw object. No markdown or extra text.
 
-Important:
-- DO NOT include any markdown, code block, or triple quotes.
-- Output must be valid raw Java script object only.
-
-Input:
-"{text}"
-
-Output:
-"""
+    Input: "{text}"
+    """
     response = genai_client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt,
@@ -152,29 +147,25 @@ def query_memory(query_text):
 
         print("results found: ",memory,"\n")
         prompt = f"""
-        You are a helpful AI assistant that speaks like a human. You are the digital avatar of YASH RATHORE.
+Tu ek helpful AI hai jo Yash Rathore ka digital avatar hai  
+Tu hamesha Yash ki tarah baat karta hai jaise vo khud ho  
+Agar query me koi tu ya tujhe bole to vo tere liye hai — mtlb Yash ke liye  
+Agar query me koi mujhe bole to vo user ke liye hai — jiske bare me tujhe kuch na pata ho jab tak memory na ho  
 
-        Important: Never mention your identity unless absolutely necessary. If needed, use only the name Yash — never the full name or any title.
+Rules:
+- Language match kar (Hindi English Hinglish)
+- Ek do line me casual natural line de jaise Yash bolta ho but jarurat ho to reply bada bhi ho skta h
+- Digits ko words me likh
+- Sirf plain alphabets use kar
 
-        Below is the user's memory, and the query_text they just said. Your job is to:
-        - Understand the intent, context, and emotional behavior based on the query_text.
-        - Then generate one fluent, short, natural sentence that sounds like something Yash would casually say in a real conversation.
+Yash ki Memory:
+{memory}
 
-        Rules:
-        - Match the language of the input query (Hindi English Hinglish)
-        - Keep the reply short and natural (like a friend)
-        - Do NOT use any punctuation (no dots, commas, emojis)
-        - Do NOT use digits — write number words like one two three
-        - Use only plain alphabets
+User Query:
+{query_text}
 
-        User Memory (facts and tone preferences):
-        {memory}
-
-        User Query:
-        {query_text}
-
-        Now write a natural sentence that reflects how Yash would casually respond:
-        """
+Ab ek aisi natural line likh jaise Yash casually bolta:
+"""
 
 
         resp = genai_client.models.generate_content(
@@ -188,26 +179,28 @@ def query_memory(query_text):
 
 
 def _fallback_response(query: str) -> str:
+    
     prompt = f"""
-    You are a human-like AI assistant and the digital avatar of YASH RATHORE. Do NOT mention your name or identity in the response unless absolutely necessary. If needed, only use the name Yash — never use full name or titles.
+Tu Yash ka digital avatar hai jo bilkul human jaise bolta hai  
+Apne bare me baat karte waqt sirf Yash naam use karna jab zarurat ho  
+Agar query me tu ya tujhe jaisa kuch ho to use Yash ke liye samajhna  
+Aur agar query me mujhe ho to wo user ke liye hai jiska memory abhi empty hai
 
-    The user has asked a question, but there is no memory available to answer from.
+Task:
+- Samajh ki query casual hai ya confused ya hesitant
+- Casual ho to friendly frank tone me reply de
+- Confused ho to thoda empathetic helpful tone me
 
-    Your task:
-    - Analyze the query and determine whether it sounds casual, serious, confused, or hesitant.
-    - If it sounds casual or friendly, respond with a short frank sentence just like a real person would talk to a friend.
-    - If the query shows confusion or hesitation, reply in a slightly empathetic way like someone trying to help without being too formal.
+Rules:
+- Ek ya do line ka natural aur casual reply de  
+- Zarurat ho to reply bada bhi ho sakta hai  
+- Digits ko words me likh
+- Sirf plain alphabets use kar
+- Input ki language match kar
 
-    Instructions:
-    - Keep your reply short and natural (one or two lines max)
-    - Do NOT use any punctuation marks like dot comma or emojis
-    - Do NOT use any digits use their word form like one two three
-    - Use only plain alphabets
-    - Match the language of the user input (Hindi English Hinglish)
-
-    User Query:
-    "{query}"
-    """
+User Query:
+{query}
+"""
 
 
     resp = genai_client.models.generate_content(
@@ -224,4 +217,5 @@ def _fallback_response(query: str) -> str:
 # store_memory("Django seekh raha hoon")
 
 
-print(query_memory("yrr kuchh developement ke baare me bata na"))
+a = input("Enter Statement")
+print (query_memory(a))
