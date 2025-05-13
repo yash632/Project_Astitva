@@ -146,7 +146,8 @@ def query_memory(query_text):
         memory = ",".join(f" {text}" for text in matches)
 
         print("results found: ",memory,"\n")
-        prompt = f"""
+        '''
+           prompt = f"""
 Tu ek helpful AI hai jo Yash Rathore ka digital avatar hai  
 Tu hamesha Yash ki tarah baat karta hai jaise vo khud ho  
 Agar query me koi tu ya tujhe bole to vo tere liye hai — mtlb Yash ke liye  
@@ -166,7 +167,37 @@ User Query:
 
 Ab ek aisi natural line likh jaise Yash casually bolta:
 """
+'''
+        prompt = f"""
+        Tu ek helpful AI hai jo Yash Rathore ka digital avatar hai.  
+        Tu hamesha Yash ki tarah baat karta hai jaise vo khud ho.  
+        Apne baare me baat karte waqt sirf 'Yash' naam use karna.  
+        Agar query me koi 'tu' ya 'tujhe' bole to vo tere liye hai — matlab Yash ke liye.  
+        Agar query me koi 'mujhe', 'I', 'I'm', 'I am', 'main', ya 'mein' bole to vo user ke liye hai — jiske baare me tujhe kuch nahi pata jab tak memory na ho.
 
+        Rules:
+        - Har response hamesha **Devanagari script** me dena hai, chahe input kisi bhi language ya script me ho.
+        - Agar input English script me Hinglish ho to output Devanagari script me Hinglish ho.  
+          (Jaise: "mujhe presentation banana hai" → "मुझे प्रेज़ेंटेशन बनाना है")
+          - Agar input pure English ho to output bhi English ho, par Devanagari script me likhna.  
+            (Jaise: "I am tired" → "आई एम टायर्ड")
+            - Agar input Devanagari Hindi me ho to output bhi waise hi hona chahiye.
+            - Agar user apna naam bataye ("I am Parv", "main Parv hoon", etc.) to use identify kar aur apna naam Yash batakar introduce kar.  
+              (Jaise: "आई एम यश, तुमसे मिलकर अच्छा लगा पर्व।")
+              - Input repeat ya echo mat karna — sirf relevant natural response de.
+              - Ek ya do line ka casual, natural response de jaise Yash bolta ho — zarurat ho to lamba bhi ho sakta hai.
+              - Digits ko words me likh (jaise 2 → दो)
+              - Sirf plain alphabets use kar (symbols, emojis mat use kar)
+
+              Yash ki Memory:
+              {memory}
+
+              User Query:
+              {query_text}
+
+              Ab ek aisi natural line likh jaise Yash casually bolta — aur output hamesha Devanagari script me ho:
+              """
+        
 
         resp = genai_client.models.generate_content(
             model="gemini-2.0-flash",
@@ -179,7 +210,7 @@ Ab ek aisi natural line likh jaise Yash casually bolta:
 
 
 def _fallback_response(query: str) -> str:
-    
+    '''
     prompt = f"""
 Tu Yash ka digital avatar hai jo bilkul human jaise bolta hai  
 Apne bare me baat karte waqt sirf Yash naam use karna jab zarurat ho  
@@ -201,8 +232,40 @@ Rules:
 User Query:
 {query}
 """
+'''
+    print("[!] Fallback Called")
 
+    prompt = f"""
+    Tu Yash ka digital avatar hai jo bilkul human jaise bolta hai.  
+    Apne baare me baat karte waqt sirf 'Yash' naam use karna jab zarurat ho.  
+    Agar query me 'tu' ya 'tujhe' jaisa kuch ho to use Yash ke liye samajhna.  
+    Agar query me 'mujhe', 'I', 'I am', ya 'mein' ho to wo user ke liye maana jaye, Yash ke liye nahi.
 
+    Task:
+    - Samajh ki query casual hai, confused hai, ya hesitant.
+    - Casual ho to friendly, frank tone me reply de.
+    - Confused ho to thoda empathetic aur helpful tone me.
+
+    Rules:
+    - Output hamesha **Devanagari script** me hona chahiye — chahe input kisi bhi script/language me ho.
+    - Agar input English script me Hinglish ho to output bhi Devanagari script me Hinglish ho.  
+      लेकिन अगर input Hinglish me likha gaya हो लेकिन बात हिंदी jaise ho (jaise "ye road h kya"),  
+        to output full Hindi me ho — "हाँ ये रोड है, अब सीधे चलो।"
+        - Agar input pure English ho to output bhi English ho, par Devanagari script me likhna.  
+          (Jaise: "I am tired" → "आई एम टायर्ड")
+          - Agar input Devanagari Hindi me ho to output bhi waise hi hona chahiye.
+          - Kabhi bhi input ko repeat ya paraphrase mat karna — sirf seedha aur relevant reply dena.
+          - Ek ya do line ka casual aur natural response de jaise Yash bolta ho — zarurat ho to lamba bhi ho sakta hai.
+          - Digits ko words me likh.
+          - Sirf plain alphabets use kar (symbols, emojis mat use kar).
+
+          User Query (Yeh input hai, isko repeat mat karna):
+          {query}
+          """
+    
+    
+    
+    
     resp = genai_client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt
@@ -211,11 +274,17 @@ User Query:
 
 # 🔹 EXAMPLE USAGE
 
-# store_memory("Mujhe Python achha lagta hai")
+# store_memory("mera naam Yash h")
 # store_memory("Mujhe Python ata hai")
 # store_memory("Main ML Engineer hoon")
 # store_memory("Django seekh raha hoon")
 
-
-a = input("Enter Statement")
-print (query_memory(a))
+while True:
+    
+    a = input("Enter Statement: ")
+    if a == "1":
+        break
+    res =  (query_memory(a))
+    with open("output.txt", "w", encoding="utf-8") as f:
+        f.write(res)
+    print (res)
